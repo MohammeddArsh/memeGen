@@ -3,3 +3,15 @@
 
 # Extracted copy of memes900k.zip (identical contents, not tracked)
 memes900k/
+
+# Python
+__pycache__/
+*.pyc
+
+# Training artifacts (regenerable; reconstructable from the seed + args)
+checkpoints/
+runs/
+*.npz
+
+# Local, not part of the project
+memeGen_info.md
