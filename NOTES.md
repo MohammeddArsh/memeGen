@@ -226,21 +226,31 @@ measure.
 
 ## 10. The hyperparameter sweep — hypothesis per knob
 
-All sweep runs share the same *budget* (steps, batch, seed) and the same
-*decoding and metrics*, so they are a fair comparison.
+All sweep runs share the same decoding (greedy) and the same metrics. The
+design has two tiers, and the report must keep them apart:
+
+1. **Screening (6,000 steps).** Six runs, each changing *one* knob from the
+   base CLIP+Transformer config (subsample 200k, seed 42): learning rate
+   {1e-4, 3e-4, 1e-3}, embed-dim {256, 512, 768}, layers {4, 6}, max-length
+   {40, 64} (the already-run value is the implicit baseline row). They rank
+   the knobs by val loss and are **not comparable** to the 18k ladder —
+   different budget.
+2. **Confirmation (18,000 steps, full budget).** The best screening config
+   is re-run at the same budget as the ladder so the winner enters the
+   headline table on equal footing.
+
+Hypotheses per knob, and what each result would mean:
 
 * **learning rate** {1e-4, 3e-4, 1e-3}: the classic "too slow / works / too
   large to converge". Expect a curve with a clear best.
-* **embed-dim / hidden-size**: capacity. Too small = underfit (loss plateaus
-  high); too large = overfit (train loss good, BLEU sticks). Expect a
-  tradeoff, not monotonic improvement.
-* **layers** (transformer 4/6/8, lstm 1/2/3): deeper = more capacity + slower.
-  Small data means the gain should saturate quickly.
-* **max-length** {40, 64}: shorter captions train faster; measure whether the
-  7% of captions longer than 40 hurt BLEU or not.
-* **[if time] beam vs greedy and teacher-forcing anneal / scheduled
-  sampling**: direct attacks on exposure bias. This is exactly the rubric's
-  "tried many ways to fix something".
+* **embed-dim**: capacity. Too small = underfit (loss plateaus high); too
+  large = overfit (train loss good, BLEU sticks). Expect a tradeoff, not
+  monotonic improvement. Note ffn-dim is held at 2048 so this is genuinely
+  one knob.
+* **layers** (4 vs 6): deeper = more capacity + slower. Small data means the
+  gain should saturate quickly.
+* **max-length** {40, 64}: shorter captions truncate the few percent of
+  captions past 40 tokens and train faster; measure whether that hurts BLEU.
 
 The rubric is not served by *many runs*; it is served by *many controlled
 runs with a documented result*. Every config is one row in `results/`.
