@@ -13,7 +13,7 @@ run_ref() {
     echo "[$(date)] === $name started ===" >> checkpoints/ladder.log
     mkdir -p "checkpoints/$name"
     ../memeGen_ai/.venv/bin/python -u train.py \
-        --out "checkpoints/$name" --subsample 200000 --max-steps 18000 \
+        --out "checkpoints/$name" --subsample 200000 --max-steps 6250 \
         --encoder "${ENC}" --decoder "${DEC}" \
         >> "checkpoints/$name/run.log" 2>&1
     rc=$?

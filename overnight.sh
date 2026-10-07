@@ -45,7 +45,7 @@ log "confirmation run with args: ${EXTRA[*]}"
 
 mkdir -p "checkpoints/sweep/best_confirm"
 $PY -u train.py --encoder clip --decoder transformer \
-    --subsample 200000 --max-steps 18000 \
+    --subsample 200000 --max-steps 6250 \
     --out "checkpoints/sweep/best_confirm" "${EXTRA[@]}" \
     >> "checkpoints/sweep/best_confirm/run.log" 2>&1
 log "confirmation finished rc=$? - overnight queue complete"

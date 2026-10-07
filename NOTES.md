@@ -212,10 +212,14 @@ measure.
   fragile with a large initial LR; the first 500 steps ramp up instead.
 * **Gradient clipping at 1.0**: caps the L2 norm of the gradient, preventing
   one bad batch from blowing up the weights.
-* **Subsampling (200k of 750k train rows)**: the baseline runs use the same
-  effective batch (32 × 4 grad-accum = 128) and 18k steps as the prior
-  working configuration, to keep runs comparable and ~3 hours. Using all 750k
-  is itself a swept experiment ("more data helps?").
+* **Subsampling (200k of 750k train rows) + 1-epoch budget**: every ladder and
+  confirmation run uses the same effective setup (batch 32, grad-accum 4 →
+  effective 128; subsample 200k), so **one epoch = 200k/32 = 6,250 steps** is
+  the standard budget for a run (roughly 30-50 min on MPS). Setting
+  `--max-steps` above that cannot help because `--epochs` defaults to 1;
+  the budget is really "epochs × steps-per-epoch". Screening rows cap at
+  6,000 steps, just below one epoch. Using all 750k rows is itself a swept
+  experiment ("more data helps?").
 * **Seeding + checkpoint args dict**: every random source is seeded and every
   checkpoint stores the full args. A checkpoint can only be evaluated as the
   architecture it was trained as, and a run can be replayed exactly.
@@ -233,11 +237,11 @@ design has two tiers, and the report must keep them apart:
    base CLIP+Transformer config (subsample 200k, seed 42): learning rate
    {1e-4, 3e-4, 1e-3}, embed-dim {256, 512, 768}, layers {4, 6}, max-length
    {40, 64} (the already-run value is the implicit baseline row). They rank
-   the knobs by val loss and are **not comparable** to the 18k ladder —
-   different budget.
-2. **Confirmation (18,000 steps, full budget).** The best screening config
-   is re-run at the same budget as the ladder so the winner enters the
-   headline table on equal footing.
+   the knobs by val loss and are **not comparable** to the full-budget
+   ladder — different budget.
+2. **Confirmation (1 epoch = 6,250 steps = the ladder budget).** The best
+   screening config is re-run at the same budget as the ladder so the winner
+   enters the headline table on equal footing.
 
 Hypotheses per knob, and what each result would mean:
 

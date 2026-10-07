@@ -17,5 +17,6 @@ Do not add a row with a different budget and treat it as comparable.
 
 The 6k-step "screening" rows are a **separate tier**: they rank which
 hyperparameter knob helps (one knob changed per row) and are never compared
-against an 18k ladder row. Only the full-budget 18k **confirmation** run
-enters the headline results alongside the three ladder runs.
+against a 1-epoch ladder row. Only the full-budget 1-epoch (6,250-step)
+**confirmation** run enters the headline results alongside the three ladder
+runs.
