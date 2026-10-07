@@ -103,13 +103,32 @@ python caption.py --image memes900k/images/king-penguin.jpg \
 
 ## Results
 
+Every run: official test split, full-split perplexity (75k rows), sacrebleu
+BLEU on the same seeded 5k-row sample, **greedy decoding**, seed 42 training /
+seed 0 sampling. One budget: 1 epoch = 6,250 steps (subsample 200k).
+
 | Run | Encoder | Decoder | Test BLEU | Test perplexity |
 | --- | --- | --- | --- | --- |
-| A | ResNet-50 | LSTM | _pending_ | _pending_ |
-| B | CLIP | LSTM | _pending_ | _pending_ |
-| C | CLIP | Transformer | _pending_ | _pending_ |
+| A | ResNet-50 | LSTM | 2.13 | 255.5 |
+| B | CLIP | LSTM | 8.92 | 259.7 |
+| C | CLIP | Transformer | **14.57** | 71.5 |
+| D (confirmation) | CLIP | Transformer (embed 768) | 14.36 | **68.4** |
 
-Hyperparameter sweeps are logged in `results/`.
+Reading the 2×2 (A→B isolates the encoder, B→C isolates the decoder):
+
+- **Decoder dominates**: CLIP+Transformer beats CLIP+LSTM by +5.65 BLEU
+  (8.92 → 14.57); the LSTM's greedy output degenerates into repeated
+  fragments, while the transformer stays fluent.
+- **Encoder matters only inside the LSTM**: CLIP lifts the LSTM from 2.13 to
+  8.92 BLEU (+6.79), a much bigger jump than the ResNet-50 → CLIP swap costs
+  the transformer.
+- **embed-dim 768 (confirmation)** improves teacher-forced perplexity
+  (71.5 → 68.4) but not BLEU (14.57 → 14.36): better next-token fit does not
+  carry into free-run generation. This is exactly the exposure-bias gap
+  `NOTES.md` §9 describes, and it is the main candidate fix left open.
+
+Hyperparameter screening (6k steps, ranked by val loss) is logged in
+`results/`; only the full-budget confirmation enters the table above.
 
 ## Note on the split
 
