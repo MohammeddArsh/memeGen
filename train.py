@@ -43,8 +43,11 @@ def parse_args():
     ap.add_argument("--weight-decay", type=float, default=1e-4)
     ap.add_argument("--subsample", type=int, default=200_000,
                     help="training rows to sample; 0 = use all 750k")
-    ap.add_argument("--epochs", type=int, default=1)
-    ap.add_argument("--max-steps", type=int, default=0)
+    ap.add_argument("--epochs", type=int, default=1,
+                    help="budget is epochs x steps-per-epoch; with subsample "
+                         "200k and batch 32 that is 1 epoch = 6250 steps")
+    ap.add_argument("--max-steps", type=int, default=0,
+                    help="hard cap per run; cannot exceed the epoch budget")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--val-samples", type=int, default=8000,
                     help="rows for checkpoint selection only; reported "

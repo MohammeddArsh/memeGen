@@ -4,8 +4,9 @@ The six screening runs are one-knob-at-a-time changes to the base
 CLIP+Transformer config. Each saved best.pt holds its best val_loss. The
 winner gets a full-budget confirmation run with the same extra args.
 
-Screening rows are NOT comparable to the 18k ladder rows -- they only rank
-the knobs. The confirmation is what enters the headline results table.
+Screening rows are NOT comparable to the full-budget (1-epoch) ladder rows --
+they only rank the knobs. The confirmation is what enters the headline
+results table.
 """
 import json
 import sys
