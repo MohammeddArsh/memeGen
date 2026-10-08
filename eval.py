@@ -79,6 +79,9 @@ def main():
     ap.add_argument("--batch-size", type=int, default=256)
     ap.add_argument("--out", type=Path, default=None,
                     help="write metrics here as JSON")
+    ap.add_argument("--samples-out", type=Path, default=None,
+                    help="write gold/predicted pairs here as JSON; feeds the "
+                         "report gallery")
     ap.add_argument("--show", type=int, default=8, help="samples to print")
     ap.add_argument("--device", default=None)
     args = ap.parse_args()
@@ -108,6 +111,7 @@ def main():
         idx = idx[: args.num_examples]
 
     hyps, refs = [], []
+    samples = []
     file_to_idx = {f: i for i, f in enumerate(image_files)}
     # Captions past ~48 tokens are outside the 99.9th percentile of the data,
     # so hard-capping generation there saves eval time without changing scores.
@@ -127,6 +131,12 @@ def main():
             for (top, bottom), j in zip(outs, chunk):
                 hyps.append(f"{top} <sep> {bottom}" if bottom else top)
                 refs.append(rows[j]["caption"])
+                samples.append({
+                    "template": rows[j]["template"],
+                    "image": rows[j]["image"],
+                    "gold": rows[j]["caption"],
+                    "pred": hyps[-1],
+                })
             n_done = n0 + len(chunk)
             if n_done % (args.gen_batch * 4) == 0 or n_done >= len(idx):
                 rate = n_done / (time.time() - start)
@@ -160,6 +170,11 @@ def main():
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(json.dumps(metrics, indent=2))
         print(f"-> {args.out}")
+
+    if args.samples_out:
+        args.samples_out.parent.mkdir(parents=True, exist_ok=True)
+        args.samples_out.write_text(json.dumps(samples, indent=2))
+        print(f"-> {args.samples_out} ({len(samples)} pairs)")
 
 
 if __name__ == "__main__":
