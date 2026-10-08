@@ -1,0 +1,22 @@
+{
+  "split": "test",
+  "checkpoint": "checkpoints/resnet50_transformer/best.pt",
+  "step": 6000,
+  "encoder": "resnet50",
+  "decoder": "transformer",
+  "perplexity": 72.7014,
+  "bleu": 14.5,
+  "n_ppl_rows": 75000,
+  "n_bleu_rows": 5000,
+  "strategy": "greedy",
+  "sample_seed": 0,
+  "val_loss": 4.357613310813904,
+  "hyperparams": {
+    "embed_dim": 512,
+    "layers": 6,
+    "heads": 8,
+    "hidden_size": 512,
+    "max_length": 64,
+    "lr": 0.0003
+  }
+}
