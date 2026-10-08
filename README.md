@@ -84,9 +84,29 @@ Reports two numbers that answer different questions:
 
 ## Caption individually
 
+One command, random template, best checkpoint (3 epochs, embed 768):
+
+```bash
+./demo.sh                          # random template, best checkpoint
+./demo.sh <image> <checkpoint>     # explicit
+```
+
+Or directly:
+
 ```bash
 python caption.py --image memes900k/images/king-penguin.jpg \
     --checkpoint checkpoints/clip_transformer/best.pt --overlay out.jpg
+```
+
+`--strategy sample --seed -1` gives a fresh sampling each run (for demos);
+the default greedy decoder (`--seed 0`) is reproducible and is what the
+reported numbers use.
+
+To rebuild the gold-vs-generated contact sheets in `showcase/`:
+
+```bash
+python showcase.py --samples results/samples_long_clip_transformer_emb768.json \
+    --out showcase/long_clip_transformer_emb768.png --n 12 --cols 4
 ```
 
 ## Files
@@ -99,6 +119,8 @@ python caption.py --image memes900k/images/king-penguin.jpg \
 | `train.py` | Training loop (AdamW, warmup, grad clip, val selection) |
 | `eval.py` | Perplexity (full split) + BLEU (seeded sample) |
 | `caption.py` | Single-image inference with Impact overlay |
+| `showcase.py` | Gold-vs-generated contact sheets for the report |
+| `demo.sh` | One-command demo (random template, best checkpoint) |
 | `NOTES.md` | Theory and every design decision made |
 
 ## Results
