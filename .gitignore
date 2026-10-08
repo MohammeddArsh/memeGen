@@ -15,3 +15,6 @@ runs/
 
 # Local, not part of the project
 memeGen_info.md
+
+# Regenerable large eval artifacts (gold/predicted pairs; ~1 MB each)
+results/samples_*.json
