@@ -112,23 +112,52 @@ seed 0 sampling. One budget: 1 epoch = 6,250 steps (subsample 200k).
 | A | ResNet-50 | LSTM | 2.13 | 255.5 |
 | B | CLIP | LSTM | 8.92 | 259.7 |
 | C | CLIP | Transformer | **14.57** | 71.5 |
-| D (confirmation) | CLIP | Transformer (embed 768) | 14.36 | **68.4** |
+| D | ResNet-50 | Transformer | 14.50 | 72.7 |
+| E (confirmation) | CLIP | Transformer (embed 768) | 14.36 | **68.4** |
 
-Reading the 2×2 (A→B isolates the encoder, B→C isolates the decoder):
+Reading the completed 2×2 (rows A–D; A→B isolates the encoder and C→D mirrors
+it, B→C and A→D isolate the decoder):
 
-- **Decoder dominates**: CLIP+Transformer beats CLIP+LSTM by +5.65 BLEU
-  (8.92 → 14.57); the LSTM's greedy output degenerates into repeated
-  fragments, while the transformer stays fluent.
-- **Encoder matters only inside the LSTM**: CLIP lifts the LSTM from 2.13 to
-  8.92 BLEU (+6.79), a much bigger jump than the ResNet-50 → CLIP swap costs
-  the transformer.
-- **embed-dim 768 (confirmation)** improves teacher-forced perplexity
+- **Decoder dominates**: swapping LSTM → Transformer gains +5.65 BLEU with
+  CLIP (B→C) and +12.37 with ResNet-50 (A→D). The LSTM's greedy output
+  degenerates into repeated fragments; the transformer stays fluent.
+- **The encoder only matters when the decoder is weak**: CLIP lifts the LSTM
+  by +6.79 BLEU (A→B) but leaves the transformer flat (-0.07, C→D). A strong
+  visual encoder and a strong decoder are partly redundant.
+- **embed-dim 768 (confirmation, row E)** improves teacher-forced perplexity
   (71.5 → 68.4) but not BLEU (14.57 → 14.36): better next-token fit does not
-  carry into free-run generation. This is exactly the exposure-bias gap
-  `NOTES.md` §9 describes, and it is the main candidate fix left open.
+  carry into free-run generation. This is the exposure-bias gap `NOTES.md` §9
+  describes.
 
 Hyperparameter screening (6k steps, ranked by val loss) is logged in
 `results/`; only the full-budget confirmation enters the table above.
+
+## Extended training (3 epochs)
+
+A second, self-contained tier: every architecture retrained for **3 epochs =
+18,750 steps** (3 × the 1-epoch budget), matched to the reference's second
+run. Same seed, greedy decoding and metrics. It is reported on its own terms
+and is **not** compared against the 1-epoch table above.
+
+| Run | Encoder | Decoder | Test BLEU | Test perplexity |
+| --- | --- | --- | --- | --- |
+| A′ | ResNet-50 | LSTM | 13.36 | 115.9 |
+| B′ | CLIP | LSTM | 12.16 | 120.7 |
+| C′ | CLIP | Transformer | 14.38 | 54.7 |
+| D′ | ResNet-50 | Transformer | 14.63 | 55.5 |
+| E′ | CLIP | Transformer (embed 768) | **14.66** | 55.2 |
+
+Reading within this tier:
+
+- **The transformer decoders form a tight cluster** — 14.38–14.66 BLEU across
+  both encoders (ResNet-50 / CLIP) and both embedding sizes (512 / 768). At
+  this budget the encoder and embedding size wash out; the decoder
+  architecture is what moves the number.
+- **LSTMs reach 12–13 BLEU** but still trail the transformer cluster by
+  ~1.5–2.5 BLEU. Here ResNet-50 + LSTM (13.36) edges CLIP + LSTM (12.16).
+- **Validation loss does not rank BLEU**: val loss orders C′ < E′ < D′, while
+  BLEU orders E′ > D′ > C′. Teacher-forced fit and free-run generation remain
+  only loosely coupled — the same exposure-bias gap seen at every budget.
 
 ## Note on the split
 

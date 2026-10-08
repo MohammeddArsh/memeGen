@@ -219,7 +219,10 @@ measure.
   `--max-steps` above that cannot help because `--epochs` defaults to 1;
   the budget is really "epochs × steps-per-epoch". Screening rows cap at
   6,000 steps, just below one epoch. Using all 750k rows is itself a swept
-  experiment ("more data helps?").
+  experiment ("more data helps?"). A separate **extended tier** re-runs every
+  architecture at `--epochs 3` = 18,750 steps (Section 13); because the
+  reference's second run uses that budget, it is the one directly comparable
+  to DeepHumor's headline number.
 * **Seeding + checkpoint args dict**: every random source is seeded and every
   checkpoint stores the full args. A checkpoint can only be evaluated as the
   architecture it was trained as, and a run can be replayed exactly.
@@ -285,3 +288,25 @@ runs with a documented result*. Every config is one row in `results/`.
 * **A blank template genuinely underdetermines the caption** — 3,000 distinct
   correct captions exist per template. No model can "solve" this; it can only
   learn the template's style and produce probable jokes.
+
+## 13. Extended training tier (3 epochs)
+
+`long_ladder.sh` retrains every architecture for 3 epochs = 18,750 steps
+(the reference's second-run budget), same seed and greedy decoding. It is a
+self-contained tier, reported separately from the 1-epoch table.
+
+Two things this tier settles:
+
+* **Longer training closes most of the LSTM gap.** At 1 epoch the LSTMs are
+  undertrained (2.13 / 8.92 BLEU); at 3 epochs they reach 12.16 / 13.36. The
+  transformer decoders barely move (14.5 → 14.4–14.7), because they were
+  already near their ceiling. So "LSTM is bad" at 1 epoch was really "LSTM is
+  slow to converge here".
+* **Encoder and embedding size wash out behind a transformer decoder.** All
+  four transformer configs land in 14.38–14.66 BLEU regardless of CLIP vs
+  ResNet-50 and embed 512 vs 768. Capacity was not the bottleneck.
+* **Perplexity and BLEU decouple further.** Going 1 → 3 epochs cuts
+  teacher-forced perplexity roughly in half, yet BLEU stays flat: the extra
+  training sharpens the conditional distribution (Section 9's exposure-bias
+  gap) without improving free-run captions. This is the single clearest
+  evidence in the project that the two metrics measure different things.
