@@ -4,8 +4,12 @@ Every run writes its metrics here via `eval.py --out`:
 
 ```bash
 python eval.py --checkpoint checkpoints/<encoder>_<decoder>/best.pt \
-    --split test --out results/<run>.json
+    --split test --out results/<run>.json \
+    --samples-out results/samples_<run>.json
 ```
+
+Metrics go to `<run>.json`; `samples_<run>.json` holds the 5k gold/predicted
+pairs (feeds the report gallery).
 
 Each JSON records: split, encoder, decoder, perplexity, BLEU, the checkpoint
 step, the sample seed, and the model hyperparameters — everything needed to
@@ -53,3 +57,29 @@ Notes:
   budget: 6,000 vs 6,250 steps) — they only rank knobs.
 - The confirmation run (D) improved perplexity but not BLEU over base (C);
   see README.md Results for the interpretation.
+
+## Log — 2026-10-08 (extended training, 3 epochs)
+
+Separate tier: every architecture retrained for 3 epochs = 18,750 steps
+(subsample 200k, batch 32, grad-accum 4, lr 3e-4, seed 42; chain:
+`long_ladder.sh`). Same greedy decoding and metrics as the headline tier.
+Reported independently — **do not compare these rows against the 1-epoch
+table.**
+
+| JSON file | Run | Encoder | Decoder | Config | Test ppl | Test BLEU |
+| --- | --- | --- | --- | --- | --- | --- |
+| `resnet50_transformer.json` | D | resnet50 | transformer | base, 1 epoch | 72.70 | 14.50 |
+| `long_resnet50_lstm.json` | A′ | resnet50 | lstm | base | 115.93 | 13.36 |
+| `long_clip_lstm.json` | B′ | clip | lstm | base | 120.66 | 12.16 |
+| `long_clip_transformer.json` | C′ | clip | transformer | base | 54.75 | 14.38 |
+| `long_resnet50_transformer.json` | D′ | resnet50 | transformer | base | 55.53 | 14.63 |
+| `long_clip_transformer_emb768.json` | E′ | clip | transformer | embed 768 | 55.21 | 14.66 |
+
+(`resnet50_transformer.json` is Run D at 1 epoch, included here because it was
+produced by the same `long_ladder.sh` chain; it belongs to the 1-epoch tier.)
+
+Notes:
+- Transformer decoders cluster at 14.38–14.66 BLEU; encoder and embedding
+  size wash out at this budget.
+- Val loss order (C′ < E′ < D′) does not match BLEU order (E′ > D′ > C′).
+- Samples for all six runs are in `samples_*.json` (5,000 pairs each).
