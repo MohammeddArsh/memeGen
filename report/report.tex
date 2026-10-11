@@ -10,6 +10,8 @@
 \usepackage{graphicx}
 \usepackage{subfigure}
 \usepackage{booktabs} % for professional tables
+\usepackage{stfloats} % allow double-column floats at page bottoms
+\usepackage{placeins} % \FloatBarrier to keep figures within sections
 
 % hyperref makes hyperlinks in the resulting PDF.
 \usepackage{hyperref}
@@ -173,7 +175,7 @@ Test       &  75{,}000 &   250 \\
 
 \subsection{Architectures}
 
-\begin{figure*}[t]
+\begin{figure*}[!tb]
 \centering
 \begin{tikzpicture}[
   font=\small,
@@ -224,21 +226,16 @@ therefore $200{,}000/32 = 6{,}250$ steps. \textbf{Tier~1} uses 1 epoch
 long DeepHumor run. Hyperparameters were screened at 6{,}000 steps by
 validation loss (one knob changed at a time), and the winning configuration was
 confirmed at full budget; \cref{sec:results} reports the screen--confirm
-protocol.
+protocol. \cref{fig:curves} shows the validation and training loss curves.
 
-\begin{figure*}[t]
+\begin{figure*}[!tb]
 \centering
-\includegraphics[width=\textwidth]{g5_val_curves.pdf}
-\caption{Validation loss over training. Tier~1 (left) and Tier~2 (right). The
-Transformer runs converge faster and lower.}
-\label{fig:val}
-\end{figure*}
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\textwidth]{g6_train_curves.pdf}
-\caption{Training loss (log scale) over steps for each tier.}
-\label{fig:train}
+\includegraphics[width=0.9\textwidth]{g5_val_curves.pdf}\\[2pt]
+\includegraphics[width=0.9\textwidth]{g6_train_curves.pdf}
+\caption{Training dynamics. Top: validation loss; bottom: training loss (log
+scale). Tier~1 (left) and Tier~2 (right). The Transformer runs converge faster
+and lower.}
+\label{fig:curves}
 \end{figure*}
 
 \subsection{Metrics}
@@ -282,7 +279,7 @@ E & CLIP      & Transformer (768) & 14.36 & \textbf{68.4} \\
 \cref{tab:t2} reports Tier~2. The Transformer runs form a tight cluster
 (14.38--14.66), and both LSTM runs remain behind (12.16--13.36) even though
 they improve substantially over Tier~1. Perplexity roughly halves relative to
-Tier~1 while BLEU is essentially unchanged.
+Tier~1 while BLEU is essentially unchanged (\cref{fig:metrics}).
 
 \begin{table}[t]
 \caption{Tier~2 results (3 epochs, official test split).}
@@ -305,21 +302,14 @@ E$'$ & CLIP      & Transformer (768) & \textbf{14.66} & \textbf{55.2} \\
 \vskip -0.1in
 \end{table}
 
-\begin{figure*}[t]
+\begin{figure*}[!tb]
 \centering
-\includegraphics[width=\textwidth]{g2_bleu.pdf}
-\caption{Test BLEU by run for each tier. Bars are coloured by encoder
-(ResNet-50, CLIP) and hatched by decoder (LSTM, Transformer). The
+\includegraphics[width=0.9\textwidth]{g2_bleu.pdf}\\[2pt]
+\includegraphics[width=0.9\textwidth]{g3_perplexity.pdf}
+\caption{Test metrics by run for each tier. Top: BLEU (bars coloured by encoder,
+hatched by decoder). Bottom: perplexity (log scale, lower is better). The
 Transformer runs dominate in both tiers.}
-\label{fig:bleu}
-\end{figure*}
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\textwidth]{g3_perplexity.pdf}
-\caption{Test perplexity (log scale, lower is better) by run for each tier.
-More training sharply lowers perplexity, especially for the Transformer runs.}
-\label{fig:ppl}
+\label{fig:metrics}
 \end{figure*}
 
 \subsection{Hyperparameter screening}
@@ -327,7 +317,7 @@ More training sharply lowers perplexity, especially for the Transformer runs.}
 6{,}000 steps. Increasing the embedding to 768 is the only change that beats
 the base configuration; the remaining knobs are within noise of it.
 
-\begin{figure}[t]
+\begin{figure}[!tb]
 \centering
 \includegraphics[width=\columnwidth]{g7_screening.pdf}
 \caption{One-knob-at-a-time screening at 6{,}000 steps. Validation loss (lower
@@ -342,13 +332,15 @@ varies over an order of magnitude while BLEU saturates around $14.5$, and the
 1-epoch and 3-epoch Transformer runs overlap despite very different losses. The
 validation-loss ranking does not match the BLEU ranking---the exposure-bias gap.
 
-\begin{figure}[t]
+\begin{figure}[!tb]
 \centering
 \includegraphics[width=\columnwidth]{g4_bleu_vs_ppl.pdf}
 \caption{BLEU vs.\ perplexity (log $x$). Marker shape is the tier; colour is
 the encoder. Lower perplexity does not imply higher BLEU.}
 \label{fig:scatter}
 \end{figure}
+
+\FloatBarrier
 
 \section{Discussion}
 \label{sec:discussion}
@@ -386,41 +378,36 @@ bias; an unseen-template split for true generalization; humor-aware metrics
 end-to-end fine-tuning; and systematic data scaling on the full 750{,}000-row
 training set.
 
-\paragraph{Qualitative examples.} \cref{fig:qual}--\cref{fig:qual4} render
-generated captions (P) beside a human reference (G) for distinct templates.
-Generated captions are fluent but often diverge from the reference, which is
-expected given the many valid captions per template and directly explains the
-low absolute BLEU.
+\paragraph{Qualitative examples.} \cref{fig:qual} renders gold (G) versus
+generated (P) captions for four runs. Generated captions are fluent but often
+diverge from the reference, which is expected given the many valid captions per
+template and directly explains the low absolute BLEU.
 
-\begin{figure*}[t]
+\begin{figure*}[!tb]
 \centering
-\includegraphics[width=0.6\textwidth]{qual_best.png}
-\caption{Gold (G) vs.\ generated (P) captions, best run
-(CLIP$+$Transformer, 3 epochs, embedding 768).}
+\begin{minipage}[t]{0.47\textwidth}\centering
+\includegraphics[width=\linewidth]{qual_best.png}\\[-1pt]
+{\footnotesize best run (CLIP$+$Transformer, 3 ep, emb 768)}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.47\textwidth}\centering
+\includegraphics[width=\linewidth]{qual_resnet_trf.png}\\[-1pt]
+{\footnotesize ResNet-50$+$Transformer (3 ep)}
+\end{minipage}\\[6pt]
+\begin{minipage}[t]{0.47\textwidth}\centering
+\includegraphics[width=\linewidth]{qual_t1_resnet_trf.png}\\[-1pt]
+{\footnotesize ResNet-50$+$Transformer (1 ep)}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.47\textwidth}\centering
+\includegraphics[width=\linewidth]{qual_clip_lstm.png}\\[-1pt]
+{\footnotesize CLIP$+$LSTM (3 ep)}
+\end{minipage}
+\caption{Gold (G) vs.\ generated (P) captions for four runs. Generated captions
+are fluent but often diverge from the reference, which is expected given the many
+valid captions per template and directly explains the low absolute BLEU.}
 \label{fig:qual}
 \end{figure*}
 
-\begin{figure*}[t]
-\centering
-\includegraphics[width=0.6\textwidth]{qual_resnet_trf.png}
-\caption{Gold vs.\ generated captions, ResNet-50$+$Transformer (3 epochs).}
-\label{fig:qual2}
-\end{figure*}
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=0.6\textwidth]{qual_t1_resnet_trf.png}
-\caption{Gold vs.\ generated captions, ResNet-50$+$Transformer (1 epoch,
-Tier~1).}
-\label{fig:qual3}
-\end{figure*}
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=0.6\textwidth]{qual_clip_lstm.png}
-\caption{Gold vs.\ generated captions, CLIP$+$LSTM (3 epochs).}
-\label{fig:qual4}
-\end{figure*}
+\FloatBarrier
 
 \clearpage
 
