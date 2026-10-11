@@ -21,3 +21,17 @@ results/samples_*.json
 
 # Ad-hoc demo renders
 demo_out/
+
+# Legacy/superseded files kept locally but not part of the repo
+ladder.sh
+overnight.sh
+pick_best_sweep.py
+REPORT.md
+
+# LaTeX build intermediates
+report/*.log
+report/*.blg
+report/*.aux
+report/*.out
+report/*.xdv
+report/*.bbl
