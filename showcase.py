@@ -18,10 +18,11 @@ import caption
 
 DATA_IMAGES = Path(__file__).parent / "memes900k" / "images"
 CARD_W, CARD_H, IMG_H, PAD = 340, 452, 300, 8
-BG = (18, 18, 20)
-FG = (235, 235, 235)
-GOLD = (150, 150, 156)
-NAME = (120, 170, 255)
+BG = (255, 255, 255)
+FG = (30, 30, 35)
+GOLD = (90, 90, 100)
+NAME = (30, 90, 200)
+SEP = (222, 222, 228)
 
 BODY_FONTS = ("/System/Library/Fonts/Supplemental/Arial.ttf",
               "/System/Library/Fonts/Helvetica.ttc", "Arial.ttf")
@@ -106,9 +107,19 @@ def main():
     cards = [make_card(s) for s in chosen]
     cols = min(args.cols, len(cards))
     rows = (len(cards) + cols - 1) // cols
-    sheet = Image.new("RGB", (cols * CARD_W, rows * CARD_H), (0, 0, 0))
+    sheet = Image.new("RGB", (cols * CARD_W, rows * CARD_H), (255, 255, 255))
     for i, card in enumerate(cards):
         sheet.paste(card, ((i % cols) * CARD_W, (i // cols) * CARD_H))
+
+    # thin separators so white cards stay visually distinct
+    d = ImageDraw.Draw(sheet)
+    for c in range(1, cols):
+        x = c * CARD_W
+        d.line([(x, 0), (x, sheet.height)], fill=SEP, width=1)
+    for r in range(1, rows):
+        y = r * CARD_H
+        d.line([(0, y), (sheet.width, y)], fill=SEP, width=1)
+    d.rectangle([0, 0, sheet.width - 1, sheet.height - 1], outline=SEP, width=1)
 
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
