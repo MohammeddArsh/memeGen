@@ -10,6 +10,7 @@ Usage:
 """
 import argparse
 import json
+import re
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
@@ -55,11 +56,16 @@ def wrap(draw, text, font, max_w, max_lines):
     return lines
 
 
+def _clean_side(text):
+    """Drop the dataset's ``<emp>`` (empty field) marker and tidy spacing."""
+    return re.sub(r"\s*<emp>\s*", " ", text).strip()
+
+
 def split_pred(pred):
     if " <sep> " in pred:
         top, bottom = pred.split(" <sep> ", 1)
-        return top, bottom
-    return pred, ""
+        return _clean_side(top), _clean_side(bottom)
+    return _clean_side(pred), ""
 
 
 def make_card(sample):
@@ -75,11 +81,15 @@ def make_card(sample):
     y = IMG_H + PAD
     d.text((PAD, y), sample["template"][:38], fill=NAME, font=fg)
     y += 21
-    for line in wrap(d, "G:  " + sample["gold"], f, inner, 2):
+    top, bottom = split_pred(sample["pred"])
+    gtop, gbottom = split_pred(sample["gold"])
+
+    gold_disp = "  /  ".join(p for p in (gtop, gbottom) if p)
+    for line in wrap(d, "G:  " + gold_disp, f, inner, 2):
         d.text((PAD, y), line, fill=GOLD, font=f)
         y += 18
     y += 5
-    pretty = sample["pred"].replace(" <sep> ", "  /  ")
+    pretty = "  /  ".join(p for p in (top, bottom) if p)
     for line in wrap(d, "P:  " + pretty, f, inner, 2):
         d.text((PAD, y), line, fill=FG, font=f)
         y += 18
