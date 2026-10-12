@@ -28,10 +28,17 @@ overnight.sh
 pick_best_sweep.py
 REPORT.md
 
-# LaTeX build intermediates
-report/*.log
-report/*.blg
-report/*.aux
-report/*.out
-report/*.xdv
-report/*.bbl
+# Report sources and build artifacts (kept locally, not part of the repo)
+report/
+
+# Execution helpers superseded by README instructions (kept locally)
+demo.sh
+eval_long.sh
+long_ladder.sh
+plots/
+
+# Duplicate ACL .tex kept locally
+meme_caption_acl.tex
+
+# Jupyter
+.ipynb_checkpoints/
