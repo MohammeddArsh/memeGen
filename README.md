@@ -49,22 +49,34 @@ pip install -r requirements.txt
 ## Train
 
 Every run is a `<encoder> x <decoder>` pair. The ablation ladder is
-ResNet-50/CLIP `<->` LSTM/Transformer, all with the same decoding and metrics:
+ResNet-50/CLIP `<->` LSTM/Transformer, all with the same optimizer, schedule,
+budget and metrics (AdamW, seed 42, 200k-row subsample). One epoch = 6,250
+steps. Checkpoints (model + the full args dict) go to `--out <dir>`, selected
+by validation loss; seeds, subsample and every hyperparameter are CLI flags
+(`--help` lists them).
+
+**Tier 1 — 1 epoch (6,250 steps):**
 
 ```bash
-# Run A — DeepHumor-style baseline (ResNet-50 + LSTM)
-python train.py --encoder resnet50 --decoder lstm
-
-# Run B — encoder ablation          (CLIP + LSTM)
-python train.py --encoder clip --decoder lstm
-
-# Run C — CLIP + Transformer (project headline)
-python train.py --encoder clip --decoder transformer --subsample 200000
+python train.py --out checkpoints/resnet50_lstm         --encoder resnet50 --decoder lstm
+python train.py --out checkpoints/clip_lstm             --encoder clip     --decoder lstm
+python train.py --out checkpoints/clip_transformer      --encoder clip     --decoder transformer
+python train.py --out checkpoints/resnet50_transformer  --encoder resnet50 --decoder transformer
+python train.py --out checkpoints/clip_transformer_emb768 --encoder clip   --decoder transformer --embed-dim 768
 ```
 
-Checkpoints (model + the full args dict) go to `checkpoints/<encoder>_<decoder>/`,
-selected by validation loss. Seeds, subsample and every hyperparameter are
-CLI flags; `--help` lists them.
+**Tier 2 — 3 epochs (18,750 steps):** the same five pairs, longer:
+
+```bash
+python train.py --out checkpoints/long_resnet50_lstm        --encoder resnet50 --decoder lstm         --epochs 3 --save-every 3000
+python train.py --out checkpoints/long_clip_lstm            --encoder clip     --decoder lstm         --epochs 3 --save-every 3000
+python train.py --out checkpoints/long_clip_transformer     --encoder clip     --decoder transformer  --epochs 3 --save-every 3000
+python train.py --out checkpoints/long_resnet50_transformer --encoder resnet50 --decoder transformer  --epochs 3 --save-every 3000
+python train.py --out checkpoints/long_clip_transformer_emb768 --encoder clip --decoder transformer  --epochs 3 --save-every 3000 --embed-dim 768
+```
+
+Training is offline-safe (`HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1`); the frozen
+encoder feature caches under `memes900k/*.npz` are built on first use.
 
 ## Eval
 
@@ -82,16 +94,31 @@ Reports two numbers that answer different questions:
   captioning work. All reported numbers use the **greedy** decoder so results
   are reproducible run-to-run.
 
-## Caption individually
-
-One command, random template, best checkpoint (3 epochs, embed 768):
+**Full eval chain** — write a metrics JSON plus the gold/predicted sample file
+for every checkpoint:
 
 ```bash
-./demo.sh                          # random template, best checkpoint
-./demo.sh <image> <checkpoint>     # explicit
+for name in resnet50_transformer long_resnet50_lstm long_clip_lstm \
+            long_clip_transformer long_resnet50_transformer long_clip_transformer_emb768; do
+  python eval.py --checkpoint "checkpoints/$name/best.pt" --split test \
+      --out "results/$name.json" --samples-out "results/samples_$name.json"
+done
 ```
 
-Or directly:
+## Caption individually
+
+One command, random template, best checkpoint (3 epochs, embed 768), sampled
+caption:
+
+```bash
+mkdir -p demo_out
+IMG=$(ls memes900k/images/*.jpg | sort -R | head -1)
+python caption.py --image "$IMG" \
+    --checkpoint checkpoints/long_clip_transformer_emb768/best.pt \
+    --strategy sample --seed -1 --overlay demo_out/out.jpg
+```
+
+Or an explicit image and checkpoint:
 
 ```bash
 python caption.py --image memes900k/images/king-penguin.jpg \
@@ -120,7 +147,6 @@ python showcase.py --samples results/samples_long_clip_transformer_emb768.json \
 | `eval.py` | Perplexity (full split) + BLEU (seeded sample) |
 | `caption.py` | Single-image inference with Impact overlay |
 | `showcase.py` | Gold-vs-generated contact sheets for the report |
-| `demo.sh` | One-command demo (random template, best checkpoint) |
 | `NOTES.md` | Theory and every design decision made |
 
 ## Results
