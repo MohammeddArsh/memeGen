@@ -6,8 +6,7 @@ bottom lines.
 
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/MohammeddArsh/memeGen/blob/main/demo.ipynb)
 
-<!-- Replace with a rendered meme: top text, template image, bottom text -->
-![memeGen output](docs/sample.png)
+<img src="showcase/example.jpg" width="420" alt="memeGen caption output">
 
 ## Dataset
 
