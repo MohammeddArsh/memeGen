@@ -1,42 +1,22 @@
-# memes900k — meme captioning
+# memeGen
 
-Image-to-text model that captions meme templates, built on the **memes900k**
-dataset (900,000 memes, 300 templates). Trained with frozen visual encoders
-(CLIP ViT-B/32, ResNet-50) and generative decoders (Transformer, LSTM), and
-evaluated with BLEU on the dataset's official test split.
+Image-to-text model that writes captions for meme templates. A frozen visual
+encoder (CLIP ViT-B/32) feeds a generative decoder that predicts the top and
+bottom lines.
 
-The reference this project improves on is [DeepHumor](https://github.com/ilya16/deephumor),
-whose only metric is teacher-forced perplexity. This project additionally
-evaluates *generated* captions (BLEU) on a held-out test set with one shared
-greedy decoder across every model, and pinned dependencies.
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/MohammeddArsh/memeGen/blob/main/demo.ipynb)
+
+<!-- Replace with a rendered meme: top text, template image, bottom text -->
+![memeGen output](docs/sample.png)
 
 ## Dataset
 
-The dataset ships as `memes900k.zip` (~45 MB). Extract it before running any
-code:
+**memes900k** — 900,000 captions over 300 meme templates, from the
+[DeepHumor](https://github.com/ilya16/deephumor) project. It ships as
+`memes900k.zip`; extract it before running any code:
 
 ```bash
-unzip memes900k.zip     # -> memes900k/  (gitignored)
-```
-
-| File | Rows | Description |
-| --- | --- | --- |
-| `captions.txt` | 900,000 | All captions, concatenated from the splits |
-| `captions_train.txt` | 750,000 | Training split (caption-level) |
-| `captions_val.txt` | 75,000 | Validation split |
-| `captions_test.txt` | 75,000 | Test split |
-| `templates.txt` | 300 | `name <tab> slug <tab> image url` |
-| `images/` | 300 | Template JPEGs, named `<slug>.jpg` |
-
-Caption rows are tab-separated: `<template name> <meme id> <setup> <sep> <punchline>`.
-The split is **caption-level** (DeepHumor's official swap): every template
-appears in all three splits, so the model is scored on new captions of
-templates it has seen, not on unseen templates.
-
-`check_data.py` verifies the loader before any training:
-
-```bash
-python check_data.py     # endswith: ALL CHECKS PASSED -> start M2
+unzip memes900k.zip      # -> memes900k/
 ```
 
 ## Setup
@@ -46,172 +26,27 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Train
+## Demo
 
-Every run is a `<encoder> x <decoder>` pair. The ablation ladder is
-ResNet-50/CLIP `<->` LSTM/Transformer, all with the same optimizer, schedule,
-budget and metrics (AdamW, seed 42, 200k-row subsample). One epoch = 6,250
-steps. Checkpoints (model + the full args dict) go to `--out <dir>`, selected
-by validation loss; seeds, subsample and every hyperparameter are CLI flags
-(`--help` lists them).
+The quickest start is the Colab notebook — click the badge above (or open
+[`demo.ipynb`](demo.ipynb)). It clones this repo, downloads the trained
+checkpoint from the [v1.0 release](https://github.com/MohammeddArsh/memeGen/releases/tag/v1.0),
+and launches a Gradio app: upload or pick a template, choose sample or greedy
+decoding, and get captioned memes.
 
-**Tier 1 — 1 epoch (6,250 steps):**
-
-```bash
-python train.py --out checkpoints/resnet50_lstm         --encoder resnet50 --decoder lstm
-python train.py --out checkpoints/clip_lstm             --encoder clip     --decoder lstm
-python train.py --out checkpoints/clip_transformer      --encoder clip     --decoder transformer
-python train.py --out checkpoints/resnet50_transformer  --encoder resnet50 --decoder transformer
-python train.py --out checkpoints/clip_transformer_emb768 --encoder clip   --decoder transformer --embed-dim 768
-```
-
-**Tier 2 — 3 epochs (18,750 steps):** the same five pairs, longer:
-
-```bash
-python train.py --out checkpoints/long_resnet50_lstm        --encoder resnet50 --decoder lstm         --epochs 3 --save-every 3000
-python train.py --out checkpoints/long_clip_lstm            --encoder clip     --decoder lstm         --epochs 3 --save-every 3000
-python train.py --out checkpoints/long_clip_transformer     --encoder clip     --decoder transformer  --epochs 3 --save-every 3000
-python train.py --out checkpoints/long_resnet50_transformer --encoder resnet50 --decoder transformer  --epochs 3 --save-every 3000
-python train.py --out checkpoints/long_clip_transformer_emb768 --encoder clip --decoder transformer  --epochs 3 --save-every 3000 --embed-dim 768
-```
-
-Training is offline-safe (`HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1`); the frozen
-encoder feature caches under `memes900k/*.npz` are built on first use.
-
-## Eval
-
-```bash
-python eval.py --checkpoint checkpoints/clip_transformer/best.pt --split test
-```
-
-Reports two numbers that answer different questions:
-
-- **Perplexity** — teacher-forced, over the full 75k-row split. Cheap, but
-  only comparable *within this project* (the reference uses a dataset-built
-  vocabulary; this project uses GPT2 byte-pair encoding).
-- **BLEU** — sacrebleu corpus BLEU on a fixed, seeded sample of generated
-  captions. Tokenizer-independent, so it is the number that speaks to other
-  captioning work. All reported numbers use the **greedy** decoder so results
-  are reproducible run-to-run.
-
-**Full eval chain** — write a metrics JSON plus the gold/predicted sample file
-for every checkpoint:
-
-```bash
-for name in resnet50_transformer long_resnet50_lstm long_clip_lstm \
-            long_clip_transformer long_resnet50_transformer long_clip_transformer_emb768; do
-  python eval.py --checkpoint "checkpoints/$name/best.pt" --split test \
-      --out "results/$name.json" --samples-out "results/samples_$name.json"
-done
-```
-
-## Caption individually
-
-One command, random template, best checkpoint (3 epochs, embed 768), sampled
-caption:
-
-```bash
-mkdir -p demo_out
-IMG=$(ls memes900k/images/*.jpg | sort -R | head -1)
-python caption.py --image "$IMG" \
-    --checkpoint checkpoints/long_clip_transformer_emb768/best.pt \
-    --strategy sample --seed -1 --overlay demo_out/out.jpg
-```
-
-Or an explicit image and checkpoint:
+To caption a single image locally with `caption.py`:
 
 ```bash
 python caption.py --image memes900k/images/king-penguin.jpg \
-    --checkpoint checkpoints/clip_transformer/best.pt --overlay out.jpg
+    --checkpoint checkpoints/long_clip_transformer_emb768/best.pt \
+    --overlay out.jpg
 ```
 
-`--strategy sample --seed -1` gives a fresh sampling each run (for demos);
-the default greedy decoder (`--seed 0`) is reproducible and is what the
-reported numbers use.
+## Training
 
-To rebuild the gold-vs-generated contact sheets in `showcase/`:
+Train with `train.py` and evaluate with `eval.py`:
 
 ```bash
-python showcase.py --samples results/samples_long_clip_transformer_emb768.json \
-    --out showcase/long_clip_transformer_emb768.png --n 12 --cols 4
+python train.py --out checkpoints/clip_transformer --encoder clip --decoder transformer
+python eval.py --checkpoint checkpoints/clip_transformer/best.pt --split test
 ```
-
-## Files
-
-| File | Purpose |
-| --- | --- |
-| `data.py` | Official-split loader + `check_data.py` gate |
-| `encoders.py` | Frozen CLIP / ResNet-50 feature extraction to `.npz` |
-| `model.py` | Transformer + LSTM decoders, shared greedy decode |
-| `train.py` | Training loop (AdamW, warmup, grad clip, val selection) |
-| `eval.py` | Perplexity (full split) + BLEU (seeded sample) |
-| `caption.py` | Single-image inference with Impact overlay |
-| `showcase.py` | Gold-vs-generated contact sheets for the report |
-| `NOTES.md` | Theory and every design decision made |
-
-## Results
-
-Every run: official test split, full-split perplexity (75k rows), sacrebleu
-BLEU on the same seeded 5k-row sample, **greedy decoding**, seed 42 training /
-seed 0 sampling. One budget: 1 epoch = 6,250 steps (subsample 200k).
-
-| Run | Encoder | Decoder | Test BLEU | Test perplexity |
-| --- | --- | --- | --- | --- |
-| A | ResNet-50 | LSTM | 2.13 | 255.5 |
-| B | CLIP | LSTM | 8.92 | 259.7 |
-| C | CLIP | Transformer | **14.57** | 71.5 |
-| D | ResNet-50 | Transformer | 14.50 | 72.7 |
-| E (confirmation) | CLIP | Transformer (embed 768) | 14.36 | **68.4** |
-
-Reading the completed 2×2 (rows A–D; A→B isolates the encoder and C→D mirrors
-it, B→C and A→D isolate the decoder):
-
-- **Decoder dominates**: swapping LSTM → Transformer gains +5.65 BLEU with
-  CLIP (B→C) and +12.37 with ResNet-50 (A→D). The LSTM's greedy output
-  degenerates into repeated fragments; the transformer stays fluent.
-- **The encoder only matters when the decoder is weak**: CLIP lifts the LSTM
-  by +6.79 BLEU (A→B) but leaves the transformer flat (-0.07, C→D). A strong
-  visual encoder and a strong decoder are partly redundant.
-- **embed-dim 768 (confirmation, row E)** improves teacher-forced perplexity
-  (71.5 → 68.4) but not BLEU (14.57 → 14.36): better next-token fit does not
-  carry into free-run generation. This is the exposure-bias gap `NOTES.md` §9
-  describes.
-
-Hyperparameter screening (6k steps, ranked by val loss) is logged in
-`results/`; only the full-budget confirmation enters the table above.
-
-## Extended training (3 epochs)
-
-A second, self-contained tier: every architecture retrained for **3 epochs =
-18,750 steps** (3 × the 1-epoch budget), matched to the reference's second
-run. Same seed, greedy decoding and metrics. It is reported on its own terms
-and is **not** compared against the 1-epoch table above.
-
-| Run | Encoder | Decoder | Test BLEU | Test perplexity |
-| --- | --- | --- | --- | --- |
-| A′ | ResNet-50 | LSTM | 13.36 | 115.9 |
-| B′ | CLIP | LSTM | 12.16 | 120.7 |
-| C′ | CLIP | Transformer | 14.38 | 54.7 |
-| D′ | ResNet-50 | Transformer | 14.63 | 55.5 |
-| E′ | CLIP | Transformer (embed 768) | **14.66** | 55.2 |
-
-Reading within this tier:
-
-- **The transformer decoders form a tight cluster** — 14.38–14.66 BLEU across
-  both encoders (ResNet-50 / CLIP) and both embedding sizes (512 / 768). At
-  this budget the encoder and embedding size wash out; the decoder
-  architecture is what moves the number.
-- **LSTMs reach 12–13 BLEU** but still trail the transformer cluster by
-  ~1.5–2.5 BLEU. Here ResNet-50 + LSTM (13.36) edges CLIP + LSTM (12.16).
-- **Validation loss does not rank BLEU**: val loss orders C′ < E′ < D′, while
-  BLEU orders E′ > D′ > C′. Teacher-forced fit and free-run generation remain
-  only loosely coupled — the same exposure-bias gap seen at every budget.
-
-## Note on the split
-
-The official split shares templates across train/val/test *by design*: each
-template has 2,500 training captions, 250 validation captions and 250 test
-captions. A correct reading of the test score is "how well the model writes
-new jokes for templates it has seen", not "how well it captions an unseen
-meme template". This is stated here so the code and the report cannot say
-different things.
