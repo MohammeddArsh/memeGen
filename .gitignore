@@ -27,6 +27,7 @@ ladder.sh
 overnight.sh
 pick_best_sweep.py
 REPORT.md
+NOTES.md
 
 # Report sources and build artifacts (kept locally, not part of the repo)
 report/
