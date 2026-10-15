@@ -30,8 +30,11 @@ showcase.py
 REPORT.md
 NOTES.md
 
-# Report sources and build artifacts (kept locally, not part of the repo)
-report/
+# Report deliverables tracked in the repo; sources/build artifacts kept locally
+report/*
+!report/report.pdf
+!report/Eigenstaendigkeitserklaerung_DE.pdf
+!report/ai_usage.md
 
 # Execution helpers superseded by README instructions (kept locally)
 demo.sh

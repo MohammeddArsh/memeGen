@@ -4,7 +4,7 @@ Image-to-text model that writes captions for meme templates. A frozen visual
 encoder (CLIP ViT-B/32) feeds a generative decoder that predicts the top and
 bottom lines.
 
-[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/MohammeddArsh/memeGen/blob/main/demo.ipynb)
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/MohammeddArsh/memeGen/blob/main/demo.ipynb) [![Report](https://img.shields.io/badge/report-PDF-red)](report/report.pdf)
 
 <img src="showcase/example.jpg" width="420" alt="memeGen caption output">
 
@@ -15,7 +15,7 @@ bottom lines.
 `memes900k.zip`; extract it before running any code:
 
 ```bash
-unzip memes900k.zip      # -> memes900k/
+unzip memes900k.zip
 ```
 
 ## Setup
