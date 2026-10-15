@@ -26,6 +26,7 @@ demo_out/
 ladder.sh
 overnight.sh
 pick_best_sweep.py
+showcase.py
 REPORT.md
 NOTES.md
 
